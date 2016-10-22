@@ -1,1 +1,0 @@
-cmd_block/built-in.o :=  arm-linux-ld -EL   -r -o block/built-in.o block/elevator.o block/ll_rw_blk.o block/ioctl.o block/genhd.o block/scsi_ioctl.o block/noop-iosched.o block/as-iosched.o block/deadline-iosched.o block/cfq-iosched.o
