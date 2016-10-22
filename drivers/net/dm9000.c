@@ -73,6 +73,11 @@
 
 #include "dm9000.h"
 
+/* 20161022 tianwei */
+#if defined(CONFIG_ARCH_S3C2410)
+#include <asm/arch/regs-mem.h>
+#endif
+
 /* Board/System/Debug information/definition ---------------- */
 
 #define DM9000_PHY		0x40	/* PHY address 0x01 */
@@ -397,6 +402,13 @@ dm9000_probe(struct platform_device *pdev)
 	int i;
 	u32 id_val;
 
+#if defined (CONFIG_ARCH_S3C2410)
+	unsigned int oldval_bwscon = *(volatile unsigned int *)S3C2410_BWSCON;
+	unsigned int oldval_bankcon4 = *(volatile unsigned int *)S3C2410_BANKCON4;
+#endif
+
+	printk("%s %s %d into dm9000_probe ... \n", __FILE__, __func__, __LINE__);
+
 	/* Init network device */
 	ndev = alloc_etherdev(sizeof (struct board_info));
 	if (!ndev) {
@@ -408,6 +420,13 @@ dm9000_probe(struct platform_device *pdev)
 	SET_NETDEV_DEV(ndev, &pdev->dev);
 
 	PRINTK2("dm9000_probe()");
+
+#if defined (CONFIG_ARCH_S3C2410)
+	*((volatile unsigned int *)S3C2410_BWSCON) = (oldval_bwscon & ~(3<<16)) |
+	S3C2410_BWSCON_DW4_16 | S3C2410_BWSCON_WS4 | S3C2410_BWSCON_ST4;
+
+	*((volatile unsigned int *)S3C2410_BANKCON4) = 0x1f74;
+#endif
 
 	/* setup board info structure */
 	db = (struct board_info *) ndev->priv;
@@ -432,9 +451,15 @@ dm9000_probe(struct platform_device *pdev)
 		db->io_data = (void __iomem *)(base + 4);
 
 	} else {
+		printk("num_resources is %d\n", pdev->num_resources);
+	
 		db->addr_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 		db->data_res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 		db->irq_res  = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+
+		printk("dm9000 addr_res -> 0x%x\n", db->addr_res->start);
+		printk("dm9000 data_res -> 0x%x\n", db->data_res->start);
+		printk("dm9000 irq_res -> 0x%x\n", db->irq_res->start);
 
 		if (db->addr_res == NULL || db->data_res == NULL ||
 		    db->irq_res == NULL) {
@@ -562,6 +587,17 @@ dm9000_probe(struct platform_device *pdev)
 	db->mii.mdio_read    = dm9000_phy_read;
 	db->mii.mdio_write   = dm9000_phy_write;
 
+#if defined (CONFIG_ARCH_S3C2410)
+
+	printk("Now use the default MAC address -> a1:b2:c3:d4:e5:f6\n");
+
+	ndev->dev_addr[0] = 0xa1;
+	ndev->dev_addr[1] = 0xb2;
+	ndev->dev_addr[2] = 0xc3;
+	ndev->dev_addr[3] = 0xd4;
+	ndev->dev_addr[4] = 0xe5;
+	ndev->dev_addr[5] = 0xf6;
+#else
 	/* Read SROM content */
 	for (i = 0; i < 64; i++)
 		((u16 *) db->srom)[i] = read_srom_word(db, i);
@@ -580,6 +616,7 @@ dm9000_probe(struct platform_device *pdev)
 	if (!is_valid_ether_addr(ndev->dev_addr))
 		printk("%s: Invalid ethernet MAC address.  Please "
 		       "set using ifconfig\n", ndev->name);
+#endif
 
 	platform_set_drvdata(pdev, ndev);
 	ret = register_netdev(ndev);
@@ -591,10 +628,17 @@ dm9000_probe(struct platform_device *pdev)
 			printk("%02x:", ndev->dev_addr[i]);
 		printk("%02x\n", ndev->dev_addr[5]);
 	}
+
 	return 0;
 
  release:
  out:
+
+#if (CONFIG_ARCH_S3C2410)
+ 	*(volatile unsigned int *)S3C2410_BWSCON = oldval_bwscon;
+ 	*(volatile unsigned int *)S3C2410_BANKCON4 = oldval_bankcon4;
+#endif
+
 	printk("%s: not found (%d).\n", CARDNAME, ret);
 
 	dm9000_release_board(pdev, db);
@@ -614,8 +658,13 @@ dm9000_open(struct net_device *dev)
 
 	PRINTK2("entering dm9000_open\n");
 
+#if defined (CONFIG_ARCH_S3C2410)
+	if (request_irq(dev->irq, &dm9000_interrupt, IRQF_SHARED | IRQF_TRIGGER_RISING, dev->name, dev))
+		return -EAGAIN;
+#else
 	if (request_irq(dev->irq, &dm9000_interrupt, IRQF_SHARED, dev->name, dev))
 		return -EAGAIN;
+#endif
 
 	/* Initialize DM9000 board */
 	dm9000_reset(db);

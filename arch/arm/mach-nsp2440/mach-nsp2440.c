@@ -69,6 +69,11 @@ static struct map_desc smdk2440_iodesc[] __initdata = {
 		.pfn		= __phys_to_pfn(S3C2410_CS2 + (1<<24)),
 		.length		= SZ_4M,
 		.type		= MT_DEVICE,
+	}, {
+		.virtual	= (u32)S3C2410_ADDR(0x02100300),
+		.pfn		= __phys_to_pfn(0x20000300),
+		.length		= SZ_1M,
+		.type		= MT_DEVICE,
 	}
 };
 
@@ -173,7 +178,8 @@ static struct platform_device *smdk2440_devices[] __initdata = {
 	&s3c_device_wdt,
 	&s3c_device_i2c,
 	&s3c_device_iis,
-	&s3c_device_rtc,
+	&s3c_device_rtc,		/* 20161021 tianwei */
+	&s3c_device_dm9000,		/* 20161022 tianwei */
 };
 
 static void __init smdk2440_map_io(void)

@@ -595,6 +595,44 @@ struct platform_device s3c_device_timer3 = {
 
 EXPORT_SYMBOL(s3c_device_timer3);
 
+/* DM9000 registrantion 20161022  tianwei */
+#include <linux/dm9000.h>
+#define	DM9000_BASE	0x20000000
+
+static struct resource s3c_dm9000_resource[] = {
+	[0] = {
+		.start = DM9000_BASE,
+		.end   = DM9000_BASE + 0x03, 	/*  */
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = DM9000_BASE + 0x04,
+		.end   = DM9000_BASE + 0x04 + 0x03,		/*  */
+		.flags = IORESOURCE_MEM,
+	},
+	[2] = {
+		.start = IRQ_EINT7,
+		.end   = IRQ_EINT7,
+		.flags = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,
+	}	
+};
+
+static struct dm9000_plat_data s3c_device_dm9000_platdata = {
+	.flags = DM9000_PLATF_16BITONLY,
+};
+
+struct platform_device s3c_device_dm9000 = {
+	.name		  	= "dm9000",
+	.id		  		= 0,
+	.num_resources	= ARRAY_SIZE(s3c_dm9000_resource),
+	.resource	  	= s3c_dm9000_resource,
+	.dev            = {
+		.platform_data = &s3c_device_dm9000_platdata,
+	}
+};
+
+EXPORT_SYMBOL(s3c_device_dm9000);
+
 #ifdef CONFIG_CPU_S3C2440
 
 /* Camif Controller */
