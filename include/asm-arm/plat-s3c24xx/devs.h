@@ -48,5 +48,6 @@ extern struct platform_device s3c_device_usbgadget;
 #ifdef CONFIG_CPU_S3C2440
 
 extern struct platform_device s3c_device_camif;
+extern struct platform_device s3c_device_dm9000;
 
 #endif
